@@ -2135,20 +2135,20 @@ bool RouteHandler::planPathLaneletsBetweenCheckpoints(
   for (const auto & st_llt : start_lanelets) {
     // check if the angle difference between start_checkpoint and start lanelet center line
     // orientation is in yaw_threshold range
-    double yaw_threshold = M_PI / 2.0;
-    bool is_proper_angle = false;
-    {
-      double lanelet_angle = lanelet::utils::getLaneletAngle(st_llt, start_checkpoint.position);
-      double pose_yaw = tf2::getYaw(start_checkpoint.orientation);
-      double angle_diff = std::abs(autoware_utils::normalize_radian(lanelet_angle - pose_yaw));
+    // double yaw_threshold = M_PI / 2.0;
+    // bool is_proper_angle = false;
+    // {
+    //   double lanelet_angle = lanelet::utils::getLaneletAngle(st_llt, start_checkpoint.position);
+    //   double pose_yaw = tf2::getYaw(start_checkpoint.orientation);
+    //   double angle_diff = std::abs(autoware_utils::normalize_radian(lanelet_angle - pose_yaw));
 
-      if (angle_diff <= std::abs(yaw_threshold)) {
-        is_proper_angle = true;
-      }
-    }
+    //   if (angle_diff <= std::abs(yaw_threshold)) {
+    //     is_proper_angle = true;
+    //   }
+    // }
 
     optional_route = routing_graph_ptr_->getRoute(st_llt, goal_lanelet, 0);
-    if (!optional_route || !is_proper_angle) {
+    if (!optional_route /*|| !is_proper_angle*/) {
       RCLCPP_ERROR_STREAM(
         logger_, "Failed to find a proper route!"
                    << std::endl
