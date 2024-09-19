@@ -20,6 +20,7 @@
 #include "autoware/mpc_lateral_controller/mpc_utils.hpp"
 #include "autoware/mpc_lateral_controller/steering_offset/steering_offset.hpp"
 #include "autoware/trajectory_follower_base/lateral_controller_base.hpp"
+#include <autoware/universe_utils/ros/polling_subscriber.hpp>
 #include "rclcpp/rclcpp.hpp"
 
 #include <diagnostic_updater/diagnostic_updater.hpp>
@@ -32,6 +33,7 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "tier4_debug_msgs/msg/float32_multi_array_stamped.hpp"
 #include "tier4_debug_msgs/msg/float32_stamped.hpp"
+#include <tier4_planning_msgs/msg/scenario.hpp> // Scenario
 
 #include <deque>
 #include <memory>
@@ -62,11 +64,14 @@ private:
   rclcpp::Clock::SharedPtr clock_;
   rclcpp::Logger logger_;
 
+  autoware::universe_utils::InterProcessPollingSubscriber<tier4_planning_msgs::msg::Scenario> scenario_sub_; // Scenario
+  tier4_planning_msgs::msg::Scenario::ConstSharedPtr latest_scenario_;
+
   rclcpp::Publisher<Trajectory>::SharedPtr m_pub_predicted_traj;
   rclcpp::Publisher<Float32MultiArrayStamped>::SharedPtr m_pub_debug_values;
   rclcpp::Publisher<Float32Stamped>::SharedPtr m_pub_steer_offset;
 
-  std::shared_ptr<diagnostic_updater::Updater>
+    std::shared_ptr<diagnostic_updater::Updater>
     diag_updater_{};  // Diagnostic updater for publishing diagnostic data.
 
   //!< @brief parameters for path smoothing
@@ -116,6 +121,10 @@ private:
 
   // check if the mpc steering output is converged
   bool isMpcConverged();
+
+  bool isParkingMode();
+
+  void onScenario(const tier4_planning_msgs::msg::Scenario::ConstSharedPtr scenario);
 
   // measured kinematic state
   Odometry m_current_kinematic_state;

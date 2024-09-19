@@ -28,6 +28,7 @@
 #include "geometry_msgs/msg/pose.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "tier4_debug_msgs/msg/float32_multi_array_stamped.hpp"
+#include "std_msgs/msg/string.hpp"
 
 #include <deque>
 #include <memory>
@@ -53,6 +54,10 @@ struct MPCWeight
 {
   // Weight for lateral tracking error. A larger weight leads to less lateral tracking error.
   double lat_error;
+
+  double lat_error_parking;
+
+  double lat_error_driving;
 
   // Weight for heading tracking error. A larger weight reduces heading tracking error.
   double heading_error;
@@ -84,6 +89,8 @@ struct MPCWeight
 
   // Weight for steering angle acceleration. Regulates the rate of change of steering rate.
   double steer_acc;
+
+
 };
 
 struct MPCParam
@@ -223,6 +230,8 @@ private:
 
   rclcpp::Publisher<Trajectory>::SharedPtr m_debug_frenet_predicted_trajectory_pub;
   rclcpp::Publisher<Trajectory>::SharedPtr m_debug_resampled_reference_trajectory_pub;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr mpc_debug_pub_;
+
   /**
    * @brief Get variables for MPC calculation.
    * @param trajectory The reference trajectory.

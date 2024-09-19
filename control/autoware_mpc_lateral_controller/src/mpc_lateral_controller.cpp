@@ -37,7 +37,8 @@ namespace autoware::motion::control::mpc_lateral_controller
 
 MpcLateralController::MpcLateralController(
   rclcpp::Node & node, std::shared_ptr<diagnostic_updater::Updater> diag_updater)
-: clock_(node.get_clock()), logger_(node.get_logger().get_child("lateral_controller"))
+: clock_(node.get_clock()), logger_(node.get_logger().get_child("lateral_controller")),
+  scenario_sub_(&node, "/planning/scenario_planning/scenario", rclcpp::QoS{1}) // Initialize properly
 {
   const auto dp_int = [&](const std::string & s) { return node.declare_parameter<int>(s); };
   const auto dp_bool = [&](const std::string & s) { return node.declare_parameter<bool>(s); };
@@ -275,6 +276,17 @@ trajectory_follower::LateralOutput MpcLateralController::run(
   if (!m_is_ctrl_cmd_prev_initialized || !is_under_control) {
     m_ctrl_cmd_prev = getInitialControlCommand();
     m_is_ctrl_cmd_prev_initialized = true;
+  }
+
+  auto scenario = scenario_sub_.takeData();
+  if (scenario) {
+    onScenario(scenario);
+  }
+  
+  if (isParkingMode()) {
+    m_mpc->m_param.nominal_weight.lat_error = m_mpc->m_param.nominal_weight.lat_error_parking;
+  } else {
+    m_mpc->m_param.nominal_weight.lat_error = m_mpc->m_param.nominal_weight.lat_error_driving;
   }
 
   const bool is_mpc_solved = m_mpc->calculateMPC(
@@ -547,6 +559,8 @@ void MpcLateralController::declareMPCparameters(rclcpp::Node & node)
 
   auto & nw = m_mpc->m_param.nominal_weight;
   nw.lat_error = dp("mpc_weight_lat_error");
+  nw.lat_error_parking = dp("mpc_weight_lat_error_parking"); 
+  nw.lat_error_driving = dp("mpc_weight_lat_error_driving"); 
   nw.heading_error = dp("mpc_weight_heading_error");
   nw.heading_error_squared_vel = dp("mpc_weight_heading_error_squared_vel");
   nw.steering_input = dp("mpc_weight_steering_input");
@@ -594,6 +608,8 @@ rcl_interfaces::msg::SetParametersResult MpcLateralController::paramCallback(
 
     const std::string ns_nw = "mpc_weight_";
     update_param(parameters, ns_nw + "lat_error", nw.lat_error);
+    update_param(parameters, ns_nw + "lat_error_parking", nw.lat_error_parking);
+    update_param(parameters, ns_nw + "lat_error_driving", nw.lat_error_driving);
     update_param(parameters, ns_nw + "heading_error", nw.heading_error);
     update_param(parameters, ns_nw + "heading_error_squared_vel", nw.heading_error_squared_vel);
     update_param(parameters, ns_nw + "steering_input", nw.steering_input);
@@ -669,6 +685,21 @@ bool MpcLateralController::isValidTrajectory(const Trajectory & traj) const
     }
   }
   return true;
+}
+
+void MpcLateralController::onScenario(const tier4_planning_msgs::msg::Scenario::ConstSharedPtr scenario)
+  {
+    latest_scenario_ = scenario;
+  }
+
+bool MpcLateralController::isParkingMode()
+{
+  if (!latest_scenario_) {
+    return false;
+  }
+
+  const auto & s = latest_scenario_->activating_scenarios;
+  return std::find(std::begin(s), std::end(s), tier4_planning_msgs::msg::Scenario::PARKING) != std::end(s);
 }
 
 }  // namespace autoware::motion::control::mpc_lateral_controller

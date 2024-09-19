@@ -35,12 +35,18 @@ MPC::MPC(rclcpp::Node & node)
     "~/debug/predicted_trajectory_in_frenet_coordinate", rclcpp::QoS(1));
   m_debug_resampled_reference_trajectory_pub =
     node.create_publisher<Trajectory>("~/debug/resampled_reference_trajectory", rclcpp::QoS(1));
+  mpc_debug_pub_ = node.create_publisher<std_msgs::msg::String>("~/mpc_debug", 10);
 }
 
 bool MPC::calculateMPC(
   const SteeringReport & current_steer, const Odometry & current_kinematics, Lateral & ctrl_cmd,
   Trajectory & predicted_trajectory, Float32MultiArrayStamped & diagnostic)
 {
+
+  // Publish lateral error weight debug message
+  std_msgs::msg::String debug_msg;
+  debug_msg.data = "Lateral error weight: " + std::to_string(m_param.nominal_weight.lat_error);
+  mpc_debug_pub_->publish(debug_msg);
   // since the reference trajectory does not take into account the current velocity of the ego
   // vehicle, it needs to calculate the trajectory velocity considering the longitudinal dynamics.
   const auto reference_trajectory =
