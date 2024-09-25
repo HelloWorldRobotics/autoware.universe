@@ -21,9 +21,6 @@
 
 namespace interpolation
 {
-std::array<std::vector<double>, 3> slerp2dFromXY(
-  const std::vector<double> & base_keys, const std::vector<double> & base_x_values,
-  const std::vector<double> & base_y_values, const std::vector<double> & query_keys);
 
 template <typename T>
 std::vector<double> splineYawFromPoints(const std::vector<T> & points);
@@ -53,7 +50,7 @@ public:
   {
     std::vector<geometry_msgs::msg::Point> points_inner;
     for (const auto & p : points) {
-      points_inner.push_back(tier4_autoware_utils::getPoint(p));
+      points_inner.push_back(autoware::universe_utils::getPoint(p));
     }
     calcSplineCoefficientsInner(points_inner);
   }
